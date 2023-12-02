@@ -1,0 +1,192 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+
+public class DinosaurGame extends JFrame implements KeyListener {
+
+    private static final int WIDTH = 600;
+    private static final int HEIGHT = 200;
+    private static final int GRAVITY = 1;
+
+    private int dinoY = HEIGHT - 30; // Ajuste para iniciar en el suelo
+    private int dinoSpeedY = 0;
+
+    private List<Obstacle> obstacles = new ArrayList<>();
+    private int score = 0;
+
+    private Timer gameTimer;
+
+    private JLabel scoreLabel; // Etiqueta para mostrar la puntuación
+
+    public DinosaurGame() {
+        setTitle("Dinosaur Game");
+        setSize(WIDTH, HEIGHT);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        setLayout(new BorderLayout());
+
+        scoreLabel = new JLabel("Score: 0", JLabel.CENTER);
+        scoreLabel.setFont(new Font("Arial", Font.PLAIN, 18));
+        add(scoreLabel, BorderLayout.NORTH);
+
+        addKeyListener(this);
+        setFocusable(true);
+
+        gameTimer = new Timer(20, new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                update();
+                repaint();
+            }
+        });
+        gameTimer.start();
+
+        Timer obstacleTimer = new Timer(2000, new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                spawnObstacle();
+            }
+        });
+        obstacleTimer.start();
+    }
+
+    private void update() {
+        dinoSpeedY += GRAVITY;
+        dinoY += dinoSpeedY;
+
+        if (dinoY > HEIGHT - 30) {
+            dinoY = HEIGHT - 30;
+            dinoSpeedY = 0;
+        }
+
+        for (Obstacle obstacle : obstacles) {
+            obstacle.move();
+            if (obstacle.collidesWithDino()) {
+                gameOver();
+            }
+        }
+
+        removeOffScreenObstacles();
+        updateScore();
+    }
+
+    private void spawnObstacle() {
+        Random random = new Random();
+        int obstacleHeight = random.nextInt(40) + 20;
+        obstacles.add(new Obstacle(WIDTH, HEIGHT - obstacleHeight, obstacleHeight));
+    }
+
+    private void removeOffScreenObstacles() {
+        List<Obstacle> toRemove = new ArrayList<>();
+        for (Obstacle obstacle : obstacles) {
+            if (obstacle.getX() + obstacle.getWidth() < 0) {
+                toRemove.add(obstacle);
+            }
+        }
+        obstacles.removeAll(toRemove);
+    }
+
+    private void updateScore() {
+        for (Obstacle obstacle : obstacles) {
+            if (obstacle.getX() == 50) {  // Dino passes obstacle
+                score++;
+                scoreLabel.setText("Score: " + score);
+            }
+        }
+    }
+
+    private void gameOver() {
+        gameTimer.stop();
+        JOptionPane.showMessageDialog(this, "Game Over! Your score: " + score);
+        System.exit(0);
+    }
+
+    @Override
+    public void paint(Graphics g) {
+        super.paint(g);
+        drawDinosaur(g);
+        drawObstacles(g);
+    }
+
+    private void drawDinosaur(Graphics g) {
+        g.setColor(Color.BLACK);
+        g.fillOval(50, dinoY, 30, 30); // Dinosaurio como un óvalo
+    }
+
+    private void drawObstacles(Graphics g) {
+        for (Obstacle obstacle : obstacles) {
+            g.setColor(Color.RED);
+            g.fillRect(obstacle.getX(), obstacle.getY(), obstacle.getWidth(), obstacle.getHeight());
+        }
+    }
+
+    @Override
+    public void keyPressed(KeyEvent e) {
+        if (e.getKeyCode() == KeyEvent.VK_SPACE && dinoY == HEIGHT - 30) {
+            dinoSpeedY = -15; // Velocidad de salto
+        }
+    }
+
+    @Override
+    public void keyReleased(KeyEvent e) {
+        // Implementar si es necesario
+    }
+
+    @Override
+    public void keyTyped(KeyEvent e) {
+        // Implementar si es necesario
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                new DinosaurGame().setVisible(true);
+            }
+        });
+    }
+
+    private class Obstacle {
+        private int x;
+        private int y;
+        private int width;
+        private int height;
+
+        public Obstacle(int x, int y, int height) {
+            this.x = x;
+            this.y = y;
+            this.width = 20;
+            this.height = height;
+        }
+
+        public int getX() {
+            return x;
+        }
+
+        public int getY() {
+            return y;
+        }
+
+        public int getWidth() {
+            return width;
+        }
+
+        public int getHeight() {
+            return height;
+        }
+
+        public void move() {
+            x -= 5;
+        }
+
+        public boolean collidesWithDino() {
+            return x < 80 && x + width > 50 && y + height > dinoY && y < dinoY + 30; // Ajuste de colisión
+        }
+    }
+} 
